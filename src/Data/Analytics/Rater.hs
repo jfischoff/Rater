@@ -1,12 +1,16 @@
 {-# LANGUAGE TypeFamilies, TemplateHaskell, DeriveDataTypeable, FlexibleContexts, GADTs, Rank2Types, DeriveFunctor, DeriveFoldable, DeriveTraversable, TypeSynonymInstances, FlexibleInstances #-}
 module Data.Analytics.Rater where
-
+import Data.Monoid
+import Data.Foldable
 import Control.Applicative
 import Control.Monad.Logic
 import Data.Analytics.Datalog
 import Data.Text
 import Data.Typeable
 import Data.Data
+import Data.Analytics.Datalog.Evaluation.Naive
+import Control.Monad.State
+import Control.Lens
     
 data Thing = Thing {
         name     :: String
@@ -59,12 +63,15 @@ test = do
     battles "drugs" "rock" R
     
     query $ row (battles U "beer" W)
+  
+  
+  
     
+test' :: [(String, String, Hand)]
+test' = Data.Foldable.toList $ evalState ?? Env 2 mempty mempty $ 
+            stratified $ test    
     
-test' :: Datalog (Logic (String,String, Hand))
-test' = test    
-    
-    
+
     
     
     
