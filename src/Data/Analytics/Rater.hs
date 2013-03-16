@@ -15,59 +15,56 @@ import Control.Lens
 data Thing = Thing {
         name     :: String
     }    
+    deriving(Show, Eq, Typeable, Ord)
     
-data Hand = L | R deriving(Show, Eq, Typeable, Data, Ord)
+instance Term Thing
+    
+data TV = X | Y | Z deriving (Eq,Ord,Show,Typeable)
+instance Term TV where type Entity TV = Thing; term = var
     
 data Battle = Battle {
         left   :: Thing,
         right  :: Thing,
-        winner :: Hand
+        nothing :: ()
     }    
+    deriving(Show, Eq, Typeable, Ord)
     
 -- try to infer a total order from a partial order
 -- find the complete ranking from the pair wise rankings
 
 things  :: T1 String String () 
-battles :: T3 (String, String, Hand) String String Hand ()
 things  = t1 (Table 0 const) (\x () -> x :: String)
-battles = t3 (Table 1 const) (\x y z () -> (x :: String, y :: String, z::Hand))
 
-instance Term String
-data StringVar = P | Q | S | T | U | V deriving (Eq,Ord,Show,Typeable)
+battles :: T2 Battle Thing Thing ()
+battles = t2 (Table 1 const) Battle
 
-instance Term StringVar where
-  type Entity StringVar = String
-  term = var
 
-data HandVar = W deriving (Eq,Ord,Show,Typeable) 
+
+  
+endpoint :: T1 Thing Thing ()
+endpoint = t1 (Table 3 const) (\x () -> x)  
+
+tc :: T2 Battle Thing Thing ()
+tc   = t2 (Table 4 const) Battle
  
-instance Term Hand
-instance Term HandVar where
-  type Entity HandVar = Hand
-  term = var 
- 
-test :: Monad m => DatalogT m (Logic (String,String, Hand))
-test = do   
-    things "pizza"
-    things "beer"
-    things "sex"
-    things "drugs"
-    things "rock"
-    things "roll"
+--test :: Monad m => DatalogT m (Logic (String,String, Hand))
+test = do  
+    T1 cyclic <- table (\x () -> x :: Thing) const
+    T1 acyclic <- table (\x () -> x :: Thing) const
+     
+    battles (Thing "sex") (Thing "beer")
     
-    battles "pizza" "beer" L
-    battles "beer" "sex"   R
-    battles "drugs" "beer" R
-    battles "rock" "beer"  L
-    battles "roll" "rock"  R
-    battles "drugs" "rock" R
+    tc X Y :- battles X Y
+    tc X Z :- tc X Y <* battles Y Z
     
-    query $ row (battles U "beer" W)
-  
-  
-  
+    cyclic X :- tc X X
+    acyclic X :- (battles X Y <|> battles Y X) <* no (cyclic X)
+    endpoint X :- acyclic X
     
-test' :: [(String, String, Hand)]
+    query $ row (tc (Thing "sex") X) <* no (battles X (Thing "beer"))
+  
+
+--test' :: [(String, String, Hand)]
 test' = Data.Foldable.toList $ evalState ?? Env 2 mempty mempty $ 
             stratified $ test    
     
