@@ -65,7 +65,7 @@ test = do
   
 
 --test' :: [(String, String, Hand)]
-test' = Data.Foldable.toList $ evalState ?? Env 2 mempty mempty $ 
+test' = Data.Foldable.toList $ evalState ?? Env 4 mempty mempty $ 
             stratified $ test    
     
 
